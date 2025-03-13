@@ -1,5 +1,6 @@
 ﻿using BookStore.Models;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.EntityFrameworkCore;
 
 namespace BookStore.Infrastructure
 {

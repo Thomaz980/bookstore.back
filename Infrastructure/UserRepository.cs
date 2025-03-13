@@ -1,10 +1,12 @@
 ﻿using BookStore.Models;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.EntityFrameworkCore;
 
 namespace BookStore.Infrastructure
 {
 	public class UserRepository
 	{
+
 		private readonly ConnectionContext _context;
 
 		public UserRepository(ConnectionContext context)
