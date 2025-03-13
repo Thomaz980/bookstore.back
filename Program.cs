@@ -1,7 +1,6 @@
 using BookStore.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<ConnectionContext>(options =>
