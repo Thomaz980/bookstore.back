@@ -1,6 +1,7 @@
-﻿using BookStore.Models;
-using Microsoft.AspNetCore.Http;
+﻿using BookStore.Infrastructure;
+using BookStore.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BookStore.Controllers
 {
@@ -8,38 +9,37 @@ namespace BookStore.Controllers
 	[ApiController]
 	public class UserController : ControllerBase
 	{
-		private readonly DbContext _context;
+		private readonly UserRepository _userRepository;
 
-		public UsersController(DbContext context)
+		public UserController(UserRepository userRepository)
 		{
-			_context = context;
+			_userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
 		}
 
 		[HttpGet]
 		public async Task<ActionResult<IEnumerable<User>>> GetUsers()
 		{
-			return await _context.Set<User>().Include(u => u.Book).ToListAsync();
+			var users = await _userRepository.GetAsync();
+			return Ok(users);
 		}
 
 		[HttpGet("{id}")]
 		public async Task<ActionResult<User>> GetUser(int id)
 		{
-			var user = await _context.Set<User>().Include(u => u.Book).FirstOrDefaultAsync(u => u.Id == id);
+			var user = await _userRepository.GetByIdAsync(id);
 
 			if (user == null)
 			{
 				return NotFound();
 			}
 
-			return user;
+			return Ok(user);
 		}
 
 		[HttpPost]
 		public async Task<ActionResult<User>> PostUser(User user)
 		{
-			_context.Set<User>().Add(user);
-			await _context.SaveChangesAsync();
-
+			await _userRepository.AddAsync(user);
 			return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
 		}
 
@@ -48,18 +48,16 @@ namespace BookStore.Controllers
 		{
 			if (id != user.Id)
 			{
-				return BadRequest();
+				return BadRequest("ID do usuário não corresponde ao parâmetro.");
 			}
-
-			_context.Entry(user).State = EntityState.Modified;
 
 			try
 			{
-				await _context.SaveChangesAsync();
+				await _userRepository.UpdateAsync(user);
 			}
 			catch (DbUpdateConcurrencyException)
 			{
-				if (!_context.Set<User>().Any(e => e.Id == id))
+				if (!await _userRepository.ExistsAsync(id))
 				{
 					return NotFound();
 				}
@@ -75,15 +73,13 @@ namespace BookStore.Controllers
 		[HttpDelete("{id}")]
 		public async Task<IActionResult> DeleteUser(int id)
 		{
-			var user = await _context.Set<User>().FindAsync(id);
-			if (user == null)
+			var userExists = await _userRepository.ExistsAsync(id);
+			if (!userExists)
 			{
 				return NotFound();
 			}
 
-			_context.Set<User>().Remove(user);
-			await _context.SaveChangesAsync();
-
+			await _userRepository.DeleteAsync(id);
 			return NoContent();
 		}
 	}

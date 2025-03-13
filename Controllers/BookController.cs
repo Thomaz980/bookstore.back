@@ -1,6 +1,6 @@
 ﻿using BookStore.Models;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BookStore.Controllers
 {
@@ -10,7 +10,7 @@ namespace BookStore.Controllers
 	{
 		private readonly Infrastructure.ConnectionContext _context;
 
-		public BooksController(Infrastructure.ConnectionContext context)
+		public BookController(Infrastructure.ConnectionContext context)
 		{
 			_context = context;
 		}
@@ -18,7 +18,8 @@ namespace BookStore.Controllers
 		[HttpGet]
 		public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
 		{
-			return await _context.Books.ToListAsync();
+			var books = await _context.Books.ToListAsync();
+			return Ok(books);
 		}
 
 		[HttpGet("{id}")]
@@ -31,12 +32,17 @@ namespace BookStore.Controllers
 				return NotFound();
 			}
 
-			return book;
+			return Ok(book);
 		}
 
 		[HttpPost]
 		public async Task<ActionResult<Book>> PostBook(Book book)
 		{
+			if (book == null)
+			{
+				return BadRequest("Dados do livro inválidos.");
+			}
+
 			_context.Books.Add(book);
 			await _context.SaveChangesAsync();
 
@@ -48,7 +54,7 @@ namespace BookStore.Controllers
 		{
 			if (id != book.Id)
 			{
-				return BadRequest();
+				return BadRequest("ID não encontrado.");
 			}
 
 			_context.Entry(book).State = EntityState.Modified;
@@ -59,14 +65,12 @@ namespace BookStore.Controllers
 			}
 			catch (DbUpdateConcurrencyException)
 			{
-				if (!_context.Books.Any(e => e.Id == id))
+				var bookExists = await _context.Books.AnyAsync(e => e.Id == id);
+				if (!bookExists)
 				{
 					return NotFound();
 				}
-				else
-				{
-					throw;
-				}
+				throw;
 			}
 
 			return NoContent();
